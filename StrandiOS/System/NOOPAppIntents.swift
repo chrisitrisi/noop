@@ -139,6 +139,17 @@ struct NOOPShortcuts: AppShortcutsProvider {
                     phrases: ["Mark a moment in \(.applicationName)"],
                     shortTitle: "Mark a Moment",
                     systemImageName: "mappin.and.ellipse")
+        AppShortcut(intent: StartWorkoutIntent(),
+                    phrases: [
+                        "Start a workout in \(.applicationName)",
+                        "Start zone training in \(.applicationName)",
+                    ],
+                    shortTitle: "Start Workout",
+                    systemImageName: "figure.run")
+        AppShortcut(intent: EndWorkoutIntent(),
+                    phrases: ["End my \(.applicationName) workout"],
+                    shortTitle: "End Workout",
+                    systemImageName: "stop.circle")
         AppShortcut(intent: BuzzStrapIntent(),
                     phrases: ["Buzz my \(.applicationName) strap"],
                     shortTitle: "Buzz Strap",
