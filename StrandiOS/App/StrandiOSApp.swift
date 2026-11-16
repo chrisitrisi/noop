@@ -321,6 +321,16 @@ struct StrandiOSApp: App {
                 .onOpenURL { url in
                     if url.host == "import-health" {
                         model.handleHealthImportURL(url)
+                    } else if let link = WorkoutLink.parse(url) {
+                        // The downloadable shortcuts start and end workouts through these links
+                        switch link {
+                        case .start(let sport, let zone, let warmupSec):
+                            if model.activeWorkout == nil {
+                                model.startWorkout(sport: sport, targetZone: zone, zoneWarmupSec: warmupSec)
+                            }
+                        case .end:
+                            model.endWorkout()
+                        }
                     }
                 }
                 .alert("Import Apple Health data?", isPresented: healthImportAlertPresented) {
