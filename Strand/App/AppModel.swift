@@ -1856,7 +1856,8 @@ final class AppModel: ObservableObject {
     /// rides along in the shared log / raw export. A single buzz confirms it registered. No start/end
     /// smarts yet (Phase 1): marks are logged in sequence; pairing into sleep bounds comes later.
     func markSleep() { markSleep(at: Date()) }
-    func markSleep(at date: Date) {
+    /// `type` defaults to `.bedtime` for the double-tap; the iOS "Log Sleep Mark" shortcut (#2266) can pass `.wake`.
+    func markSleep(at date: Date, type: SleepMarkType = .bedtime) {
         sleepMarks.append(date)
         if sleepMarks.count > 500 { sleepMarks.removeFirst(sleepMarks.count - 500) }
         UserDefaults.standard.set(sleepMarks.map(\.timeIntervalSince1970), forKey: "sleepMarks")
@@ -1871,7 +1872,7 @@ final class AppModel: ObservableObject {
         // it defaults to `.bedtime` , the boundary the gesture most naturally marks. Idempotent by
         // (deviceId, day, key) through the repo's live store handle: no new Repository API, no schema
         // change. The UserDefaults list + buzz + freetext log line above are unchanged.
-        let mark = SleepMark(type: .bedtime, at: date)
+        let mark = SleepMark(type: type, at: date)
         Task { [weak self] in
             guard let self, let store = await self.repo.storeHandle() else { return }
             try? await store.upsertMetricSeries([mark.metricPoint], deviceId: self.repo.deviceId)

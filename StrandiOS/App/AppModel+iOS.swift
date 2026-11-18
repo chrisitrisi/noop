@@ -43,6 +43,16 @@ extension AppModel {
         }
     }
 
+    /// For the background logging shortcuts (#2266): the app model once it exists, polling once a second for up to
+    /// `seconds`. A cold background launch hands the intent its first tick before `shared` is set.
+    static func waitForModel(seconds: Int) async -> AppModel? {
+        for _ in 0..<seconds {
+            if let model = shared { return model }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        }
+        return shared
+    }
+
     /// For the background "Buzz Strap" shortcut: true once the strap link is bonded (the haptic command is gated on
     /// the bond), polling once a second for up to `seconds`. A cold background launch hands the intent its first tick
     /// before `shared` exists, and the auto-connect to the remembered strap then needs a few seconds to bond.
