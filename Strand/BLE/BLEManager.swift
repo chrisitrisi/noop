@@ -5586,16 +5586,16 @@ public final class BLEManager: NSObject, ObservableObject {
     /// One-shot user buzz (#921): the on-device-confirmed "vibrate the strap now" sequence.
     ///
     /// Uses RUN_HAPTICS_PATTERN (cmd 79) with patternId=2, 3 loops (the same pattern the official
-    /// WHOOP app uses for alarms; verified: patternId=2, observed for interoperability), plus RUN_ALARM
-    /// (cmd 68) as a belt-and-suspenders. patternId=2 gives the characteristic graduated alarm buzz.
+    /// WHOOP app uses for alarms; verified: patternId=2, observed for interoperability), plus, on a
+    /// WHOOP 4.0 only, RUN_ALARM (cmd 68) as a belt-and-suspenders. patternId=2 gives the characteristic graduated alarm buzz.
     /// A bare RUN_HAPTICS_PATTERN write is exactly what a WHOOP 4.0 was reported ignoring on the
     /// Siri-shortcut path (#921), so every user-facing one-shot buzz (the Live "Buzz strap" button,
     /// the Buzz Strap App Intent) routes through here instead of composing its own write.
     ///
     /// Both writes are ACKNOWLEDGED (.withResponse): a backgrounded shortcut on a busy link can
     /// silently drop an unacknowledged write, which is how #921 logged "Run Haptics" with no
-    /// vibration. On a 5/MG, send() remaps cmd 79 to the maverick 0x13 notify buzz and RUN_ALARM
-    /// carries the REVISION_2 body; both are already on the 5/MG command allowlist.
+    /// vibration. On a 5/MG, send() remaps cmd 79 to the maverick 0x13 notify buzz, and no RUN_ALARM
+    /// follows (#2796): there RUN [0x02, id] runs and then clears the stored alarm in that slot.
     ///
     /// Alternative waveform form (12-byte):
     ///   [wfe1=47, wfe2=152, 0,0,0,0,0,0, loop u16=0, overall_loop=7, dur=30]
@@ -5605,8 +5605,10 @@ public final class BLEManager: NSObject, ObservableObject {
     func buzzStrapOnce() {
         send(.runHapticsPattern, payload: [2, 3, 0, 0, 0], writeType: .withResponse)  // patternId=2, 3 loops (5/MG: send() remaps to the maverick notify buzz)
         if selectedModel.deviceFamily == .whoop5 {
-            send(.runAlarm, payload: AlarmPayload.runAlarmRev2(), writeType: .withResponse)   // REVISION_2 [0x02, alarmId]
-            log("Buzz: one-shot fired (5/MG maverick buzz + runAlarm rev2, acked)")
+            // #2796: the maverick buzz alone, no RUN_ALARM. On a 5/MG, RUN [0x02, id] runs the alarm stored
+            // in that slot and then clears it (docs/PROTOCOL_ALARMS.md), so a buzz could eat the wake alarm.
+            // Android has always stopped here; the RUN_ALARM belt-and-braces below is a WHOOP 4.0 fix (#921).
+            log("Buzz: one-shot fired (5/MG maverick buzz, acked)")
             return
         }
         send(.runAlarm, payload: [0x01], writeType: .withResponse)

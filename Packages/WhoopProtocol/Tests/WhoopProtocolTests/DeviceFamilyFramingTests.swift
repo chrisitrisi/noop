@@ -357,17 +357,15 @@ final class DeviceFamilyFramingTests: XCTestCase {
     }
 
     func testPuffinOneShotBuzzSequenceGoldens() {
-        // #921 one-shot buzz (BLEManager.buzzStrapOnce): on a 5/MG the confirmed sequence is the
-        // maverick 0x13 notify buzz followed by RUN_ALARM(68) REVISION_2, on consecutive seq bytes.
-        // Golden hexes generated independently (Python: zlib CRC-32, CRC16-Modbus) and cross-checked
-        // against the Android FramingTest vectors, so a drift in either frame fails here. (Android
-        // stops at the maverick buzz on a 5/MG: its allow-list excludes RUN_ALARM for that family.)
+        // #921 one-shot buzz (BLEManager.buzzStrapOnce): on a 5/MG the sequence is the maverick 0x13
+        // notify buzz ALONE. #2796: it no longer follows with RUN_ALARM(68) REVISION_2, which on a 5/MG
+        // runs and clears stored alarm slot 1; this matches Android, whose 5/MG allow-list excludes
+        // RUN_ALARM. Golden hex generated independently (Python: zlib CRC-32, CRC16-Modbus) and
+        // cross-checked against the Android FramingTest vectors, so a drift in the frame fails here.
+        // The RUN_ALARM REVISION_2 encoder keeps its own golden in the alarm test above.
         let buzz = puffinCommandFrame(cmd: 0x13, seq: 1,
                                       payload: [0x01, 47, 152, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         XCTAssertEqual(buzz, Self.hex("aa0114000001e1e1230113012f980000000000000000000098cb83a5"))
-        let runAlarm = puffinCommandFrame(cmd: 68, seq: 2, payload: AlarmPayload.runAlarmRev2())
-        XCTAssertEqual(runAlarm, Self.hex("aa010c000001e74123024402010000008ad7f1d3"))
         XCTAssertTrue(verifyFrame(buzz, family: .whoop5).ok)
-        XCTAssertTrue(verifyFrame(runAlarm, family: .whoop5).ok)
     }
 }

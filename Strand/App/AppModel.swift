@@ -1452,10 +1452,11 @@ final class AppModel: ObservableObject {
         if HapticPrefs.enabled(gate) { buzz(loops: loops) }
     }
 
-    /// One-shot user buzz (#921): the on-device-confirmed pattern (patternId=2, 3 loops) followed by
-    /// RUN_ALARM, both written acknowledged. A bare RUN_HAPTICS_PATTERN write can be silently ignored
-    /// (WHOOP 4.0 via the Siri shortcut) or dropped unacked on a busy link, so the Live "Buzz strap"
-    /// button and the Buzz Strap App Intent both route through this single sequence.
+    /// One-shot user buzz (#921): the on-device-confirmed pattern (patternId=2, 3 loops), written
+    /// acknowledged. On a WHOOP 4.0 it is followed by RUN_ALARM, because a bare RUN_HAPTICS_PATTERN
+    /// write can be silently ignored there (via the Siri shortcut) or dropped unacked on a busy link.
+    /// A 5/MG gets the maverick buzz alone (#2796: RUN_ALARM there runs and clears alarm slot 1).
+    /// The Live "Buzz strap" button and the Buzz Strap App Intent both route through this sequence.
     func buzzStrapOnce() {
         ble.buzzStrapOnce()
     }

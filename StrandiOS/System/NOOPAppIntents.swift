@@ -70,14 +70,37 @@ struct MarkMomentIntent: AppIntent {
     }
 }
 
-/// Send a confirming haptic buzz to the strap. Opens the app so the live BLE link can deliver it.
+/// Why the "Buzz Strap" shortcut could not buzz. Shown by Shortcuts / Siri as the action's error.
+enum BuzzStrapIntentError: Error, CustomLocalizedStringResourceConvertible {
+    case notConnected
+    var localizedStringResource: LocalizedStringResource {
+        switch self {
+        case .notConnected: return "Connect your WHOOP strap in NOOP, then try again."
+        }
+    }
+}
+
+/// Send a confirming haptic buzz to the strap WITHOUT opening NOOP, so it can run from a personal automation,
+/// the Action button or a lock-screen Shortcut. Same idea as `SyncStrapIntent`: iOS runs an in-app intent inside
+/// NOOP's own process (launching or resuming it in the background), where the strap link lives under the
+/// bluetooth-central background mode. The macOS twin (Strand/System/NOOPAppIntents.swift) has always worked this way.
+///
+/// A cold background launch has to reconnect and bond first, so wait briefly for a bonded link, then fire the
+/// one-shot buzz. No bond within the wait → fail with a clear error rather than park the buzz for the next
+/// foreground, where a vibration minutes later would only be confusing.
 struct BuzzStrapIntent: AppIntent {
     static var title: LocalizedStringResource = "Buzz Strap"
     static var description = IntentDescription("Send a haptic buzz to your WHOOP strap.")
-    static var openAppWhenRun = true
+    static var openAppWhenRun = false
 
+    @MainActor
     func perform() async throws -> some IntentResult {
-        PendingIntents.append(.buzz)
+        guard await AppModel.waitForBondedStrap(seconds: 10) else { throw BuzzStrapIntentError.notConnected }
+        // #921: the one-shot routine sends the confirmed sequence, acknowledged, so a busy link can't drop it.
+        AppModel.shared?.buzzStrapOnce()
+        // Both writes are acknowledged; give the acks a moment before the intent returns and iOS may suspend
+        // the background-launched process.
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         return .result()
     }
 }
