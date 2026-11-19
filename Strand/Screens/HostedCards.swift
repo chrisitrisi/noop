@@ -65,6 +65,9 @@ enum HostedCard: String, CaseIterable, Identifiable {
     case trendRestingHR = "trends.restingHr"
     /// Trends tab · "Effort" — the trailing-month Effort trend, on the wearer's chosen scale (#268).
     case trendEffort = "trends.effort"
+    /// Today · "Drinks & caffeine" — tap-to-log water and caffeine (`IntakeQuickCard`, fork extra). Like
+    /// `sleepMarks` its buttons are its purpose, so it has no route. Apple-only: Android drops the unknown id.
+    case intake = "today.intake"
 
     var id: String { rawValue }
 
@@ -83,6 +86,7 @@ enum HostedCard: String, CaseIterable, Identifiable {
         case .trendHRV: return String(localized: "Heart rate variability")
         case .trendRestingHR: return String(localized: "Resting heart rate")
         case .trendEffort: return String(localized: "Effort")
+        case .intake: return String(localized: "Drinks & caffeine")
         }
     }
 
@@ -93,6 +97,7 @@ enum HostedCard: String, CaseIterable, Identifiable {
         case .sleepMarks, .asleepDuration, .stagesVsTypical, .nightDetail, .sleepDebt, .stages, .hoursVsNeeded, .consistency: return String(localized: "Sleep")
         case .stressToday: return String(localized: "Stress")
         case .trendHRV, .trendRestingHR, .trendEffort: return String(localized: "Trends")
+        case .intake: return String(localized: "Today")
         }
     }
 
@@ -109,7 +114,7 @@ enum HostedCard: String, CaseIterable, Identifiable {
     /// compiler asks where the new one goes.
     var route: TabRoute? {
         switch self {
-        case .sleepMarks: return nil
+        case .sleepMarks, .intake: return nil
         case .asleepDuration, .stagesVsTypical, .nightDetail, .sleepDebt, .stages,
              .hoursVsNeeded, .consistency: return .sleep
         case .stressToday: return .stress
@@ -136,6 +141,7 @@ enum HostedCard: String, CaseIterable, Identifiable {
         case .trendHRV: return "waveform.path.ecg"
         case .trendRestingHR: return "heart"
         case .trendEffort: return "bolt.fill"
+        case .intake: return "drop.fill"
         }
     }
 
@@ -147,6 +153,7 @@ enum HostedCard: String, CaseIterable, Identifiable {
         case .trendHRV: return StrandPalette.metricPurple
         case .trendRestingHR: return StrandPalette.metricRose
         case .trendEffort: return StrandPalette.effortColor
+        case .intake: return StrandPalette.metricCyan
         }
     }
 
