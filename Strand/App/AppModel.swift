@@ -1452,10 +1452,11 @@ final class AppModel: ObservableObject {
         if HapticPrefs.enabled(gate) { buzz(loops: loops) }
     }
 
-    /// One-shot user buzz (#921): the on-device-confirmed pattern (patternId=2, 3 loops) followed by
-    /// RUN_ALARM, both written acknowledged. A bare RUN_HAPTICS_PATTERN write can be silently ignored
-    /// (WHOOP 4.0 via the Siri shortcut) or dropped unacked on a busy link, so the Live "Buzz strap"
-    /// button and the Buzz Strap App Intent both route through this single sequence.
+    /// One-shot user buzz (#921): the on-device-confirmed pattern (patternId=2, 3 loops), written
+    /// acknowledged. On a WHOOP 4.0 it is followed by RUN_ALARM, because a bare RUN_HAPTICS_PATTERN
+    /// write can be silently ignored there (via the Siri shortcut) or dropped unacked on a busy link.
+    /// A 5/MG gets the maverick buzz alone (#2796: RUN_ALARM there runs and clears alarm slot 1).
+    /// The Live "Buzz strap" button and the Buzz Strap App Intent both route through this sequence.
     func buzzStrapOnce() {
         ble.buzzStrapOnce()
     }
@@ -1855,7 +1856,8 @@ final class AppModel: ObservableObject {
     /// rides along in the shared log / raw export. A single buzz confirms it registered. No start/end
     /// smarts yet (Phase 1): marks are logged in sequence; pairing into sleep bounds comes later.
     func markSleep() { markSleep(at: Date()) }
-    func markSleep(at date: Date) {
+    /// `type` defaults to `.bedtime` for the double-tap; the iOS "Log Sleep Mark" shortcut (#2266) can pass `.wake`.
+    func markSleep(at date: Date, type: SleepMarkType = .bedtime) {
         sleepMarks.append(date)
         if sleepMarks.count > 500 { sleepMarks.removeFirst(sleepMarks.count - 500) }
         UserDefaults.standard.set(sleepMarks.map(\.timeIntervalSince1970), forKey: "sleepMarks")
@@ -1870,7 +1872,7 @@ final class AppModel: ObservableObject {
         // it defaults to `.bedtime` , the boundary the gesture most naturally marks. Idempotent by
         // (deviceId, day, key) through the repo's live store handle: no new Repository API, no schema
         // change. The UserDefaults list + buzz + freetext log line above are unchanged.
-        let mark = SleepMark(type: .bedtime, at: date)
+        let mark = SleepMark(type: type, at: date)
         Task { [weak self] in
             guard let self, let store = await self.repo.storeHandle() else { return }
             try? await store.upsertMetricSeries([mark.metricPoint], deviceId: self.repo.deviceId)
