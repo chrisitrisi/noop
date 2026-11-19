@@ -318,7 +318,6 @@ final class DeviceFamilyFramingTests: XCTestCase {
         XCTAssertEqual(body.count, 20)
         XCTAssertEqual(body, Self.hex("040100f15365be0f2f980000000000000000071e"))
         XCTAssertEqual(AlarmPayload.disableRev2(), [0x02, 0xFF])
-        XCTAssertEqual(AlarmPayload.runAlarmRev2(), [0x02, 0x01])
         // #926: overallLoop counts the repeats AFTER the first pulse (hardware-confirmed on a 5/MG by
         // @dwehrmann), so ONE buzz is 0 — and that is byte-for-byte the literal both send() paths shipped
         // for years, which is why the old single buzz was the observed behaviour.
@@ -340,8 +339,8 @@ final class DeviceFamilyFramingTests: XCTestCase {
     }
 
     func testPuffinAlarmFramesMatchKotlinParityGoldens() {
-        // Cross-platform parity pins: the Android FramingTest asserts these SAME three full-frame
-        // hexes, so both platforms are locked to identical alarm bytes (the same pipeline whose
+        // Cross-platform parity pins: the Android FramingTest asserts these SAME full-frame
+        // hexes (#2796 dropped the RUN_ALARM REVISION_2 encoder, which no Apple path sends any more), so both platforms are locked to identical alarm bytes (the same pipeline whose
         // buzz output is capture-verified above). SET_ALARM_TIME inner is 23 bytes → pad4 → 24,
         // declLen 28; the rev-2 bodies pad 5 → 8.
         let alarm = puffinCommandFrame(cmd: 66, seq: 1,
@@ -352,8 +351,6 @@ final class DeviceFamilyFramingTests: XCTestCase {
         XCTAssertEqual(Reassembler(family: .whoop5).feed(alarm), [alarm])
         XCTAssertEqual(puffinCommandFrame(cmd: 69, seq: 1, payload: AlarmPayload.disableRev2()),
                        Self.hex("aa010c000001e74123014502ff000000267ffc4f"))
-        XCTAssertEqual(puffinCommandFrame(cmd: 68, seq: 1, payload: AlarmPayload.runAlarmRev2()),
-                       Self.hex("aa010c000001e741230144020100000017cd19e2"))
     }
 
     func testPuffinOneShotBuzzSequenceGoldens() {
