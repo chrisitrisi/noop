@@ -1,5 +1,6 @@
 import SwiftUI
 import StrandDesign
+import WhoopStore
 
 /// "Days in a row with the strap on", pinned near the top of Today with a living flame.
 ///
@@ -10,11 +11,15 @@ import StrandDesign
 struct WearStreakCard: View {
     @EnvironmentObject var repo: Repository
 
-    private var result: WearStreak.Result {
-        let worn = Set(repo.days.filter {
+    private var result: WearStreak.Result { Self.result(days: repo.days) }
+
+    /// The streak over the banked days as of now. One resolver for the card and the daily splash, so the
+    /// two can never show different counts.
+    static func result(days: [DailyMetric], now: Date = Date()) -> WearStreak.Result {
+        let worn = Set(days.filter {
             WearStreak.isWorn(restingHr: $0.restingHr, strain: $0.strain, totalSleepMin: $0.totalSleepMin)
         }.map(\.day))
-        return WearStreak.compute(wornDays: worn, today: Repository.logicalDayKey(Date()))
+        return WearStreak.compute(wornDays: worn, today: Repository.logicalDayKey(now))
     }
 
     var body: some View {
@@ -55,7 +60,7 @@ struct WearStreakCard: View {
     /// 0...1 flame size: grows over the first month, then holds.
     static func intensity(days: Int) -> Double { min(1, 0.45 + Double(days) / 55) }
 
-    private static func milestoneLine(_ r: WearStreak.Result) -> LocalizedStringKey {
+    static func milestoneLine(_ r: WearStreak.Result) -> LocalizedStringKey {
         switch r.current {
         case 100...: return "Legendary. 100 days and counting"
         case 30...:  return "A month on fire"
@@ -66,7 +71,7 @@ struct WearStreakCard: View {
 }
 
 /// A layered, flickering flame with rising embers, drawn on a Canvas each animation frame.
-private struct StreakFlame: View {
+struct StreakFlame: View {
     /// 0...1, the flame's size and the number of embers.
     let intensity: Double
     /// Burning (today worn) or glowing embers (today still open).
