@@ -77,9 +77,12 @@ struct StreakFlame: View {
     /// Burning (today worn) or glowing embers (today still open).
     let lit: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The app-wide quiet-motion gate (Reduce Motion, Low Power, the in-app quiet setting, an obscured
+    /// window): a never-settling frame loop must stand still under any of them.
+    @ObservedObject private var motion = NoopMotionState.shared
 
     var body: some View {
-        if reduceMotion {
+        if motion.poseStill(reduceMotion) {
             Canvas { ctx, size in draw(in: &ctx, size: size, t: 0) }
         } else {
             TimelineView(.animation) { timeline in
