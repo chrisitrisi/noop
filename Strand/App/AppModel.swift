@@ -106,6 +106,8 @@ final class AppModel: ObservableObject {
     /// sport: it only arms for a `WorkoutCatalog.Sport.isDistanceSport`, and only actually captures once
     /// the user grants When-In-Use location.
     let gpsRecorder = GpsWorkoutRecorder()
+    /// Buzzes when the active workout's heart rate leaves the zone picked at its start (zone training).
+    let zoneGuard = WorkoutZoneGuard()
     /// True while the active workout is a GPS-type session (drives the End-time route persist). Mirrors
     /// Android's `ActiveWorkout.gpsEnabled`.
     private var activeWorkoutIsGps = false
@@ -823,7 +825,8 @@ final class AppModel: ObservableObject {
     /// name; callers that don't pick a sport get the catalogue default "Other", parity with Android's
     /// `startWorkout(sport:)`). The active card on Live then shows elapsed time, live HR and strain
     /// building; End scores + saves it under this sport. Confirms with a single buzz. (#519)
-    func startWorkout(sport: String = WorkoutCatalog.defaultSportName) {
+    func startWorkout(sport: String = WorkoutCatalog.defaultSportName,
+                      targetZone: Int? = nil, zoneWarmupSec: Int = 0) {
         guard activeWorkout == nil else { return }
         lastWorkout = nil
         let name = sport.trimmingCharacters(in: .whitespaces)
@@ -842,6 +845,7 @@ final class AppModel: ObservableObject {
         // Make the session durable from the first instant (#529): persist it now so an OS kill right
         // after Start , before any HR sample lands , can still be rehydrated + ended on relaunch.
         persistActiveWorkout()
+        if let targetZone { armZoneGuard(zone: targetZone, warmupSec: zoneWarmupSec, startedAt: started) }
         // Workouts & GPS test mode (Test Centre): one session-start line tagged `.workouts`. Zero-cost when
         // off (the gate is one UserDefaults bool read), so the lifecycle of a missing workout is visible.
         emitWorkoutsTrace(WorkoutsTrace.sessionLine(
@@ -907,8 +911,20 @@ final class AppModel: ObservableObject {
     /// snapshot so reopening doesn't lose it , the session can still be ended + saved (#529). The Apple
     /// analogue of Android's `rehydrateActiveNonGpsWorkout`. No-op when a workout is already live (a live
     /// session wins over a stale snapshot) or nothing is stored. Called once from `init`.
+    /// Start holding `zone` for the active workout (see `WorkoutZoneGuard`).
+    private func armZoneGuard(zone: Int, warmupSec: Int, startedAt: Date) {
+        // Resting HR only places the band in %HRR for display; the zone bounds themselves are absolute.
+        let resting = repo.today?.restingHr ?? repo.days.last(where: { $0.restingHr != nil })?.restingHr ?? 60
+        zoneGuard.start(zone: zone, zones: profile.hrZoneSet, restingHR: Double(resting),
+                        warmupSec: warmupSec, model: self, startedAt: startedAt)
+    }
+
     private func rehydrateActiveWorkout() {
-        guard activeWorkout == nil, let snap = ActiveWorkoutPersistence.load() else { return }
+        guard activeWorkout == nil, let snap = ActiveWorkoutPersistence.load() else {
+            // A stored target without its workout belongs to a session that already ended.
+            zoneGuard.stop()
+            return
+        }
         var w = ActiveWorkout(start: Date(timeIntervalSince1970: TimeInterval(snap.startSec)),
                               sport: snap.sport)
         w.samples = snap.samples
@@ -918,6 +934,9 @@ final class AppModel: ObservableObject {
         w.pausedAt = snap.pausedAtSec.map { Date(timeIntervalSince1970: TimeInterval($0)) }
         w.pausedDuration = TimeInterval(snap.pausedDurationSec ?? 0)
         activeWorkout = w
+        if let target = WorkoutZoneGuard.storedTarget() {
+            armZoneGuard(zone: target.zone, warmupSec: target.warmupSec, startedAt: w.start)
+        }
 
         // Rebuild the transient GPS lifecycle flag as well as the durable workout value. Without this,
         // a distance workout restored after an OS kill resumes as a non-GPS workout: Resume never
@@ -952,6 +971,7 @@ final class AppModel: ObservableObject {
     func discardWorkout() {
         guard activeWorkout != nil else { return }
         activeWorkout = nil
+        zoneGuard.stop()
         if activeWorkoutIsGps { gpsRecorder.stop() }
         activeWorkoutIsGps = false
         ActiveWorkoutPersistence.clear()
@@ -976,6 +996,7 @@ final class AppModel: ObservableObject {
     func endWorkout() {
         guard let w = activeWorkout else { return }
         activeWorkout = nil
+        zoneGuard.stop()
         let wasGps = activeWorkoutIsGps
         activeWorkoutIsGps = false
         // Drop the durable snapshot the instant the session ends , whether it saves below or is discarded
@@ -1091,6 +1112,7 @@ final class AppModel: ObservableObject {
             if w.peakHr != peakBefore { activeWorkout = w }
             return
         }
+        zoneGuard.feed(bpm: hr)
         w.peakHr = max(w.peakHr, hr)
         w.avgHr = Int((Double(w.samples.map(\.bpm).reduce(0, +)) / Double(w.samples.count)).rounded())
         w.liveStrain = StrainScorer.strain(w.samples, maxHR: Double(profile.hrMax),

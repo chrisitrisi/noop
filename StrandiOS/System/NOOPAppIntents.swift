@@ -290,6 +290,17 @@ struct NOOPShortcuts: AppShortcutsProvider {
                     phrases: ["Mark a moment in \(.applicationName)"],
                     shortTitle: "Mark a Moment",
                     systemImageName: "mappin.and.ellipse")
+        AppShortcut(intent: StartWorkoutIntent(),
+                    phrases: [
+                        "Start a workout in \(.applicationName)",
+                        "Start zone training in \(.applicationName)",
+                    ],
+                    shortTitle: "Start Workout",
+                    systemImageName: "figure.run")
+        AppShortcut(intent: EndWorkoutIntent(),
+                    phrases: ["End my \(.applicationName) workout"],
+                    shortTitle: "End Workout",
+                    systemImageName: "stop.circle")
         AppShortcut(intent: BuzzStrapIntent(),
                     phrases: ["Buzz my \(.applicationName) strap"],
                     shortTitle: "Buzz Strap",
@@ -310,21 +321,13 @@ struct NOOPShortcuts: AppShortcutsProvider {
                     phrases: ["Log a sleep mark in \(.applicationName)"],
                     shortTitle: "Log a sleep mark",
                     systemImageName: "bed.double")
-        // AppShortcutsProvider allows at most 10 entries; this is the ninth.
+        // AppShortcutsProvider allows at most 10 entries, and this is the tenth. AskCoachIntent left the
+        // list to make room (this fork runs with Coach off); it stays an AppIntent, so the Shortcuts app
+        // still offers it as an action, only the zero-setup Siri phrases are gone.
         AppShortcut(intent: GetBloodOxygenIntent(),
                     phrases: ["Get my blood oxygen from \(.applicationName)"],
                     shortTitle: "Blood Oxygen",
                     systemImageName: "lungs")
-        // K9: "Ask Coach" via Siri — opens Coach with the question and sends it. The question
-        // parameter is provided via the Shortcuts app or Siri prompts for it when the phrase fires.
-        AppShortcut(intent: AskCoachIntent(),
-                    phrases: [
-                        "Ask \(.applicationName) about my recovery",
-                        "Ask \(.applicationName) how I'm doing",
-                        "Ask \(.applicationName) Coach",
-                    ],
-                    shortTitle: "Ask Coach",
-                    systemImageName: "sparkles")
     }
 }
 #endif

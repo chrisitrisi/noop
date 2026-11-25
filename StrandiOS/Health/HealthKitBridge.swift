@@ -1401,6 +1401,9 @@ final class HealthKitBridge: ObservableObject {
         case "swimming":      return .swimming
         case "surfing":       return .surfingSports
         case "paddling":      return .paddleSports
+        // Health has no sauna type. Mind and Body keeps a sauna session apart from "Other", so an app
+        // reading Health (e.g. a training log importing sauna minutes) can tell it from a workout.
+        case "sauna":         return .mindAndBody
         default:              return .other
         }
     }
