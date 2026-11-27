@@ -23,7 +23,7 @@
           "version": "12.2.0",
           "buildVersion": "442",
           "date": "2026-11-25",
-          "localizedDescription": "NOOP 12.2.0. See the release notes for what changed.",
+          "localizedDescription": "• Hold a heart-rate zone during a workout, start and end it from Shortcuts\n• Show a wear streak with a flame on Today\n• Start and end workouts through noop://workout links\n• Drinks tab and a once-a-day wear-streak splash",
           "downloadURL": "https://github.com/chrisitrisi/noop/releases/download/v12.2.0/NOOP-ios-unsigned-v12.2.0.ipa",
           "size": 22082175,
           "minOSVersion": "17.0"
@@ -1486,7 +1486,7 @@
       "version": "12.2.0",
       "buildVersion": "442",
       "versionDate": "2026-11-25",
-      "versionDescription": "NOOP 12.2.0. See the release notes for what changed.",
+      "versionDescription": "• Hold a heart-rate zone during a workout, start and end it from Shortcuts\n• Show a wear streak with a flame on Today\n• Start and end workouts through noop://workout links\n• Drinks tab and a once-a-day wear-streak splash",
       "downloadURL": "https://github.com/chrisitrisi/noop/releases/download/v12.2.0/NOOP-ios-unsigned-v12.2.0.ipa",
       "size": 22082175,
       "minOSVersion": "17.0"
