@@ -1,6 +1,8 @@
 #if os(iOS)
 import Foundation
 import AppIntents
+import StrandAnalytics
+import UserNotifications
 import WhoopProtocol
 
 /// Queue of actions requested by an App Intent while the app may be suspended. Intents can't reach
@@ -273,6 +275,41 @@ struct GetBloodOxygenIntent: AppIntent {
         let pct = Int(newest.value.rounded())
         let pctText = "\(pct) %"
         return .result(value: pct, dialog: "Blood oxygen on \(newest.day): \(pctText) (strap estimate, unverified)")
+    }
+}
+
+/// Water check for a time-of-day automation (fork extra): when today's water trails the pace towards the
+/// day's goal (`HydrationReminder`), buzz the strap and post a "drink some water" notification; otherwise do
+/// nothing. Runs WITHOUT opening NOOP. The total is NOOP's own day total, which already includes water
+/// imported from Apple Health (wger's water card, other apps), so one check covers every place it is logged.
+/// Returns whether it nudged, for a Shortcut that wants to branch on it.
+struct CheckHydrationIntent: AppIntent {
+    static var title: LocalizedStringResource = "Water Check"
+    static var description = IntentDescription("Buzz your strap and remind you to drink when today's water is behind pace.")
+    static var openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<Bool> & ProvidesDialog {
+        guard let model = await AppModel.waitForModel(seconds: 8) else { throw NOOPShortcutError.notReady }
+        let now = Date()
+        let total = await model.repo.hydrationTotal(day: Repository.localDayKey(now))
+        let goal = model.repo.hydrationGoalML(profileSex: model.profile.sex)
+        let progress = HydrationGoal.cardValueString(totalML: total, goalML: goal)
+        guard HydrationReminder.isBehind(totalML: total, goalML: goal, now: now) else {
+            return .result(value: false, dialog: "On track: \(progress)")
+        }
+        if await AppModel.waitForBondedStrap(seconds: 10) {
+            AppModel.shared?.buzzStrapOnce()
+        }
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Drink some water")
+        content.body = String(localized: "So far today: \(progress)")
+        content.sound = .default
+        try? await UNUserNotificationCenter.current()
+            .add(UNNotificationRequest(identifier: "noop.waterCheck", content: content, trigger: nil))
+        // Leave the acked buzz write a moment before iOS may suspend the background-launched process.
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        return .result(value: true, dialog: "Drink some water. So far today: \(progress)")
     }
 }
 
