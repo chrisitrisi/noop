@@ -79,8 +79,26 @@ public struct LiveSessionEngine {
         public let hrMax: Double
         /// Today's Charge (0...100); nil = unknown → the conservative default curve.
         public let charge: Double?
-        public init(restingHR: Double, hrMax: Double, charge: Double?) {
+        /// A band the user picked (e.g. "hold Zone 2"), replacing the recovery-gated one. See `TargetBand`.
+        public let targetBand: TargetBand?
+        /// Cue-free grace from session start; nil = `warmupSec`. A run that starts with a walk needs longer.
+        public let warmupSec: Int?
+        public init(restingHR: Double, hrMax: Double, charge: Double?,
+                    targetBand: TargetBand? = nil, warmupSec: Int? = nil) {
             self.restingHR = restingHR; self.hrMax = hrMax; self.charge = charge
+            self.targetBand = targetBand; self.warmupSec = warmupSec
+        }
+    }
+
+    /// A fixed target band in bpm, e.g. the bounds of one HR zone. Unlike the recovery-gated band it is a
+    /// rule the user set, not an estimate of what today can pay for, so two things change: every sustained
+    /// breach over the ceiling earns an ease-off (slow drift is exactly what zone training corrects), and
+    /// the ceiling never drifts up.
+    public struct TargetBand: Equatable, Sendable {
+        public let floorBpm: Double
+        public let ceilingBpm: Double
+        public init(floorBpm: Double, ceilingBpm: Double) {
+            self.floorBpm = floorBpm; self.ceilingBpm = ceilingBpm
         }
     }
 
@@ -141,6 +159,15 @@ public struct LiveSessionEngine {
     /// The recovery-gated target band. Charge scales the ceiling between the low/high anchors; the floor sits
     /// a fixed HRR width below, never under `minFloorPctHRR`. Expressed in both %HRR and bpm.
     public static func band(config: Config) -> Band {
+        if let target = config.targetBand {
+            let reserve = max(config.hrMax - config.restingHR, 1.0)
+            return Band(
+                floorBpm: target.floorBpm,
+                ceilingBpm: target.ceilingBpm,
+                floorPctHRR: (target.floorBpm - config.restingHR) / reserve,
+                ceilingPctHRR: (target.ceilingBpm - config.restingHR) / reserve
+            )
+        }
         let cn: Double = {
             guard let c = config.charge else { return defaultChargeFraction }
             return min(max(c / 100.0, 0.0), 1.0)
@@ -240,7 +267,8 @@ public struct LiveSessionEngine {
             if currentPosition != .above {
                 aboveSinceTs = now
                 let fromClimb = lastClimbTs.map { now - $0 <= Self.climbAttributionSec } ?? false
-                aboveSlowSinceTs = fromClimb ? nil : now
+                // A user-set target treats slow drift like a climb: it eases off and never drifts.
+                aboveSlowSinceTs = (fromClimb || config.targetBand != nil) ? nil : now
             }
             belowSinceTs = nil
         case .inBand:
@@ -253,7 +281,7 @@ public struct LiveSessionEngine {
         }
 
         // 8. Status.
-        let status: Status = (now - startTs < Self.warmupSec) ? .warmup : .active
+        let status: Status = (now - startTs < (config.warmupSec ?? Self.warmupSec)) ? .warmup : .active
 
         // 9. Cue decision — only when active, one cue at most, silence by default.
         var cue: Cue? = nil

@@ -132,4 +132,47 @@ final class LiveSessionEngineTests: XCTestCase {
         XCTAssertNil(out.smoothedBpm)
         XCTAssertNil(out.cue, "we never buzz on a stale stream")
     }
+
+    // MARK: - User-set target band (zone training)
+
+    /// Zone 2 of a 190 max: 60-70 % = 114-133 bpm.
+    private func zoneCfg(warmupSec: Int? = nil) -> LiveSessionEngine.Config {
+        LiveSessionEngine.Config(restingHR: rhr, hrMax: hrMax, charge: 90,
+                                 targetBand: .init(floorBpm: 114, ceilingBpm: 133), warmupSec: warmupSec)
+    }
+
+    func test_target_band_replaces_the_recovery_gated_band() {
+        let b = LiveSessionEngine.band(config: zoneCfg())
+        XCTAssertEqual(b.floorBpm, 114)
+        XCTAssertEqual(b.ceilingBpm, 133)
+        XCTAssertEqual(b.floorPctHRR, (114 - rhr) / (hrMax - rhr), accuracy: 1e-9)
+    }
+
+    func test_target_band_eases_off_on_slow_drift_and_never_drifts_up() {
+        var e = LiveSessionEngine(config: zoneCfg(), startTs: 1000)
+        _ = feed(&e, bpm: 125, fromTs: 1000, seconds: 70)
+        // The same slow ramp the recovery-gated band forgives: here it leaves Zone 2, so it must ease off.
+        var outs: [LiveSessionEngine.Output] = []
+        for i in 0..<240 {
+            let bpm = 130 + Int(Double(i) * (15.0 / 240.0))
+            outs.append(e.update(now: 1070 + i, bpm: bpm))
+        }
+        XCTAssertTrue(outs.contains { $0.cue == .easeOff }, "drifting out of the target zone is corrected")
+        XCTAssertTrue(outs.allSatisfy { $0.band.ceilingBpm == 133 }, "a rule the user set does not drift")
+    }
+
+    func test_target_band_pushes_when_below_the_zone() {
+        var e = LiveSessionEngine(config: zoneCfg(), startTs: 1000)
+        let outs = feed(&e, bpm: 100, fromTs: 1000, seconds: 120)
+        XCTAssertTrue(outs.contains { $0.cue == .pushNudge })
+        XCTAssertFalse(outs.contains { $0.cue == .easeOff })
+    }
+
+    func test_custom_warmup_keeps_a_walk_in_silence() {
+        var e = LiveSessionEngine(config: zoneCfg(warmupSec: 300), startTs: 0)
+        let walk = feed(&e, bpm: 95, fromTs: 0, seconds: 300)       // five minutes of walking, below the zone
+        XCTAssertTrue(walk.allSatisfy { $0.cue == nil }, "no cue while warming up")
+        let run = feed(&e, bpm: 95, fromTs: 300, seconds: 60)
+        XCTAssertTrue(run.contains { $0.cue == .pushNudge }, "coaching starts once the warm-up is over")
+    }
 }

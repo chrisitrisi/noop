@@ -51,12 +51,20 @@ struct RootTabView: View {
     /// root view alive, so an at-root re-tap keeps scroll position and never re-runs `.task`
     /// (#198; the #197 resetID/`.id()` rebuild reset both). Requires the tab roots' first-hop
     /// links to push `TabRoute`/`MoreDestination` VALUES — closure-destination links bypass the path.
-    @State private var tabPaths: [NavigationPath] = Array(repeating: NavigationPath(), count: 5)
+    @State private var tabPaths: [NavigationPath] = Array(repeating: NavigationPath(), count: 6)
     /// One scroll-to-top token per tab. Bumped when the user re-taps the active tab while it's ALREADY
     /// at its root — the other half of the iOS convention #197/#198 left unserved (an at-root re-tap was
     /// a no-op). Threaded into each tab's root via `\.scrollToTopSignal`; ScreenScaffold / LiquidTodayView
     /// scroll to their top anchor when their tab's token changes.
-    @State private var scrollTop: [Int] = Array(repeating: 0, count: 5)
+    @State private var scrollTop: [Int] = Array(repeating: 0, count: 6)
+
+    /// Fork extra: the Drinks tab (tag 5) fills Coach's slot while Coach is off.
+    private var showsDrinksTab: Bool { !coachEnabled }
+
+    /// The tags on the bar, left to right. Swipes step through this rather than tag ± 1.
+    private var visibleTabTags: [Int] {
+        [0, 1, 2] + (coachEnabled ? [3] : []) + (showsDrinksTab ? [5] : []) + [4]
+    }
     /// Which More-tab groups are expanded (S2). Insights + Body stay open at rest; Data + App collapse to
     /// just their header until tapped. Persisted (#860 item 2): the user's open/closed choice must SURVIVE
     /// leaving and re-entering the More tab (and relaunch), not reset to the seed every visit. Backed by an
@@ -114,7 +122,12 @@ struct RootTabView: View {
                 guard selectedTab != 0 else { return }
                 let dx = v.translation.width, dy = v.translation.height
                 guard abs(dx) > 60, abs(dx) > abs(dy) * 1.6 else { return }
-                let next = min(4, max(0, selectedTab + (dx < 0 ? 1 : -1)))
+                // Step through the tabs actually on the bar, in bar order. Tags are not contiguous (Coach,
+                // tag 3, can be absent; Drinks is tag 5 but sits before More), so tag ± 1 could land on a
+                // tag no tab claims, which renders an empty tab.
+                let order = visibleTabTags
+                guard let at = order.firstIndex(of: selectedTab) else { return }
+                let next = order[min(order.count - 1, max(0, at + (dx < 0 ? 1 : -1)))]
                 if next != selectedTab {
                     withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.24)) { selectedTab = next }
                 }
@@ -138,14 +151,23 @@ struct RootTabView: View {
             if coachEnabled {
                 tab(CoachView(), "Coach", "sparkles", path: $tabPaths[3], scrollSignal: scrollTop[3]).tag(3)
             }
+            // Fork extra: Drinks takes the fourth slot when Coach is off. Not both: an iPhone tab bar shows
+            // five items, and a sixth would fold the last two into a system "More" that collides with ours.
+            if showsDrinksTab {
+                tab(DrinksScreen(), "Drinks", "drop.fill", path: $tabPaths[5], scrollSignal: scrollTop[5]).tag(5)
+            }
             moreTab(path: $tabPaths[4], scrollSignal: scrollTop[4]).tag(4)
         }
         .tint(StrandPalette.accent)
+        // Daily wear-streak splash (fork extra): once per day, on top of whichever tab opens.
+        .overlay { WearStreakSplashHost() }
         // Switching Coach off while STANDING on it leaves `selectedTab` pointing at a tag no tab claims
         // any more, which renders as an empty tab rather than as an error. Send that wearer to Today, and
         // only in that case, so a flip made from anywhere else does not move them.
         .onChangeCompat(of: coachEnabled) { enabled in
             if !enabled && selectedTab == 3 { selectedTab = 0 }
+            // Coach coming back takes the Drinks slot (see `showsDrinksTab`).
+            if enabled && selectedTab == 5 { selectedTab = 0 }
         }
         // #1841: the same "Hide bar when scrolling" preference Android drives its own bar with. Here the
         // system owns the behaviour — iOS 26's tab bar MINIMISES to a pill on scroll down rather than

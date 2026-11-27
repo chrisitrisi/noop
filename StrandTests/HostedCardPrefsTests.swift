@@ -17,6 +17,7 @@ final class HostedCardPrefsTests: XCTestCase {
         XCTAssertEqual(HostedCard.trendHRV.rawValue, "trends.hrv")
         XCTAssertEqual(HostedCard.trendRestingHR.rawValue, "trends.restingHr")
         XCTAssertEqual(HostedCard.trendEffort.rawValue, "trends.effort")
+        XCTAssertEqual(HostedCard.intake.rawValue, "today.intake")
     }
 
     /// The two local-day counters have to agree, and nothing but this test can check them.
@@ -52,7 +53,8 @@ final class HostedCardPrefsTests: XCTestCase {
         // The tap-to-log card must NOT navigate: its buttons are its purpose, and a wrapper would put a
         // second meaning behind the same press.
         XCTAssertNil(HostedCard.sleepMarks.route)
-        for card in HostedCard.allCases where card != .sleepMarks {
+        XCTAssertNil(HostedCard.intake.route)
+        for card in HostedCard.allCases where card != .sleepMarks && card != .intake {
             XCTAssertNotNil(card.route, "\(card.rawValue) taps through to nothing")
         }
         // Sleep-origin cards land on the Sleep tab.

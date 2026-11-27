@@ -2486,6 +2486,7 @@ struct TodayView: View {
     private func hostedCard(for card: HostedCard) -> some View {
         switch card {
         case .sleepMarks: SleepMarkCard()
+        case .intake: IntakeQuickCard()
         case .trendHRV, .trendRestingHR, .trendEffort:
             // The Trends charts, drawn by the tab's own ChartCard + TrendChart from the SAME resolved
             // points. `HostedTrendData` walks the `days` already in hand, so unlike the sleep model and

@@ -359,6 +359,9 @@ struct LiquidTodayView: View {
                     // pinned above the reorderable block so an active manual workout is immediately visible
                     // and taps straight through to Live. Renders nothing when no workout is active.
                     ActiveWorkoutIndicatorSection()
+                    // Days in a row with the strap on, with a flame that grows with the streak. Today only;
+                    // renders nothing until there is a streak.
+                    if selectedDayOffset == 0 { WearStreakCard() }
                     // #today-layout (parity with Android): every Today section — the Charge/Effort/Rest hero
                     // and Start-session included — renders in the user's saved order. Reorder via the Arrange
                     // sheet (the header's up/down button; native drag rows); the order persists under the
@@ -826,6 +829,7 @@ struct LiquidTodayView: View {
     private func hostedCard(for card: HostedCard) -> some View {
         switch card {
         case .sleepMarks: SleepMarkCard()
+        case .intake: IntakeQuickCard()
         case .trendHRV, .trendRestingHR, .trendEffort:
             // The Trends charts, drawn by the tab's own ChartCard + TrendChart from the SAME resolved
             // points. `HostedTrendData` walks the `days` already in hand, so unlike the sleep model and

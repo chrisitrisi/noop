@@ -70,7 +70,4 @@ public enum AlarmPayload {
 
     /// DISABLE_ALARM (cmd 69) REVISION_2 body `[0x02, 0xFF]` (the 5/MG form).
     public static func disableRev2() -> [UInt8] { [0x02, 0xFF] }
-
-    /// RUN_ALARM (cmd 68) REVISION_2 body `[0x02, alarmId]` — fire the stored alarm now.
-    public static func runAlarmRev2(alarmId: UInt8 = 1) -> [UInt8] { [0x02, alarmId] }
 }

@@ -25,6 +25,10 @@ on:
         description: "Explicit version override, e.g. 8.3.0 (blank = apply the bump above)"
         required: false
         default: ""
+      notes:
+        description: "What's New shown in SideStore (blank = list the changes since the last release)"
+        required: false
+        default: ""
 
 # Workflow-level default is read-only; each job below that actually pushes a commit or
 # publishes/uploads a release grants itself `contents: write` explicitly (issue #657 — every job
@@ -331,6 +335,7 @@ jobs:
           VER: ${{ needs.bump.outputs.ver }}
           TAG: ${{ needs.bump.outputs.tag }}
           BUILD: ${{ needs.bump.outputs.buildVersion }}
+          NOTES: ${{ inputs.notes }}
         run: |
           set -euo pipefail
           if [ ! -f altstore-source.json ]; then
@@ -346,7 +351,21 @@ jobs:
           [ -n "${BUILD:-}" ] || BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION:' project.yml | sed -E 's/.*"([0-9]+)".*/\1/')
           DATE=$(date -u +%Y-%m-%d)
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${IPA}"
-          DESC="NOOP ${VER}. See the release notes for what changed."
+          # What's New in SideStore: the text given when the build was started, otherwise the commit
+          # subjects since the previous version in this source (version bumps and merges left out, the
+          # conventional "type(scope): " prefix dropped so the list reads as plain sentences).
+          DESC="${NOTES:-}"
+          if [ -z "$DESC" ]; then
+            PREV=$(jq -r --arg v "$VER" '[.apps[0].versions[].version | select(. != $v)][0] // empty' altstore-source.json)
+            if [ -n "$PREV" ]; then
+              DESC=$(gh api "repos/${GITHUB_REPOSITORY}/compare/v${PREV}...${TAG}" \
+                       --jq '.commits[].commit.message | split("\n")[0]' 2>/dev/null \
+                     | grep -vE '^(Release [0-9]|Merge )' \
+                     | sed -E 's/^[a-z]+(\([^)]*\))?!?: //; s/^(.)/\U\1/; s/^/• /' \
+                     | head -15 || true)
+            fi
+          fi
+          [ -n "$DESC" ] || DESC="NOOP ${VER}."
           MINOS=$(jq -r '.apps[0].minOSVersion // "17.0"' altstore-source.json)
 
           # Prepend to versions[] (dedup this version so a re-run is idempotent) AND mirror into the

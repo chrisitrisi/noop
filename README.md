@@ -48,6 +48,55 @@
 
 ---
 
+> [!NOTE]
+> **Dies ist ein persönlicher Fork von [ryanbr/noop](https://github.com/ryanbr/noop)** mit Extras fürs **iPhone und die WHOOP 5.0**.
+> Ab „Download“ folgt die Original-README von NOOP.
+
+## Was dieser Fork zusätzlich kann
+
+### Kurzbefehle ohne App-Öffnen
+Laufen im Hintergrund, also auch aus Automationen, mit dem Action-Button, per Siri und auf dem Sperrbildschirm.
+
+| Kurzbefehl | Was er macht |
+|---|---|
+| **Buzz Strap** | Lässt das Band einmal vibrieren. Wartet bis zu 10 s auf die Verbindung, sonst kommt eine Fehlermeldung. |
+| **Buzz the time** | Gibt die Uhrzeit als Vibration aus: lang = Zehner, kurz = Einer, erst Stunden, dann Minuten. |
+| **Log Caffeine** | Erfasst Koffein, Menge in mg optional. |
+| **Log Water** | Fügt ein Getränk zur heutigen Trinkmenge hinzu (Standard 250 ml). |
+| **Log a sleep mark** | Erfasst „Einschlafen“ oder „Aufwachen“. |
+| **Get Blood Oxygen** | Gibt den SpO₂-Schätzwert der letzten Nacht als Zahl an den Kurzbefehl zurück. |
+
+### Getränke, Trage-Serie, Training
+- **Tab „Drinks“** unten in der Leiste (solange der Coach aus ist): Wasser-Balken mit Spritzer, +0,25 L / +0,5 L, Koffein mit Rest zur Schlafenszeit, eine scrollbare Leiste mit Espresso, Kaffee, Tee, Mate, Cola, Energydrink und mehr, darunter die volle Koffein-Karte. Dieselbe Karte gibt es auch für Heute („Getränke & Koffein“).
+- **Trage-Serie mit Flamme**: eine Karte auf Heute und **einmal am Tag** beim Öffnen groß als Pop-up („12 Tage in Folge 🔥“).
+- **Zonentraining**: im Workout eine Pulszone halten, das Band meldet sich beim Verlassen. Start und Ende auch per Kurzbefehl oder `noop://workout`-Link.
+
+### Fixes und Verbesserungen
+- **Buzz löscht keinen Wecker mehr** ([ryanbr/noop#2796](https://github.com/ryanbr/noop/issues/2796)): Auf der 5.0/MG hat „Buzz“ zusätzlich `RUN_ALARM` gesendet. Das löst den gespeicherten Wecker in Slot 1 aus und löscht ihn danach. Jetzt wird nur noch vibriert, wie in der Android-App.
+- **Robustere SpO₂-Nachtberechnung**: Pro 30-Sekunden-Messfenster wird der Median gebildet, dann über die Nacht gemittelt. Übernommen aus [ryanbr/noop#2825](https://github.com/ryanbr/noop/pull/2825) von LeonardSEO.
+
+> [!IMPORTANT]
+> **SpO₂ ist ein experimenteller Schätzwert vom Band, nicht überprüft** und kein Medizinprodukt. Damit er berechnet wird, in NOOP **Einstellungen → „Experimental · Blood Oxygen“** einschalten. Hintergrund: [ryanbr/noop#1099](https://github.com/ryanbr/noop/issues/1099).
+
+### Installieren (iPhone)
+1. Unter [**Releases**](../../releases/latest) die Datei `NOOP-ios-unsigned-v….ipa` laden.
+2. Mit [Sideloadly](https://sideloadly.io) oder [AltStore](https://altstore.io) installieren.
+3. ⚠️ Die IPA hat dieselbe App-ID wie das offizielle NOOP. Sie **ersetzt** eine installierte Version und übernimmt deren Daten. Vorher in NOOP ein Backup machen.
+
+**Selbst bauen:** Unter *Actions → „Release build (fork)“ → Run workflow* starten. Der Build läuft auf einem Mac von GitHub, ein eigener Mac ist nicht nötig.
+
+### Status
+Die Extras sind **noch nicht auf einer echten WHOOP 5.0 getestet**. Bitte vor allem prüfen, ob ein gestellter Wecker nach „Buzz Strap“ noch klingelt.
+
+### Geplant
+- Live Activity beim Laufen: Puls und Pace auf dem Sperrbildschirm.
+- Sauna-Sessions mit Pulsverlauf und Wochenziel.
+- VO₂max-Schätzung aus Tempo und Puls beim Laufen.
+
+<sub>Lizenz unverändert: [PolyForm Noncommercial 1.0.0](LICENSE). Alle Rechte an NOOP liegen bei den ursprünglichen Autor:innen. Inoffiziell und nicht verbunden mit WHOOP, Inc.</sub>
+
+---
+
 ## Download
 
 Pre-built apps you can run right now:
