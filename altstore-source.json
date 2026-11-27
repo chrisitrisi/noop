@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "12.2.1",
+          "buildVersion": "443",
+          "date": "2026-11-27",
+          "localizedDescription": "• Neue Kurzbefehl-Aktion „Wasser-Check“: Liegst du beim Trinken hinter dem Plan, vibriert die Whoop und du bekommst eine Mitteilung. Zählt auch Wasser aus Apple Health (z. B. aus wger).\n• Die Flamme der Trage-Serie steht im Stromsparmodus still und spart Akku.\n• SideStore zeigt bei Updates jetzt an, was neu ist.",
+          "downloadURL": "https://github.com/chrisitrisi/noop/releases/download/v12.2.1/NOOP-ios-unsigned-v12.2.1.ipa",
+          "size": 22090614,
+          "minOSVersion": "17.0"
+        },
+        {
           "version": "12.2.0",
           "buildVersion": "442",
           "date": "2026-11-25",
@@ -1483,12 +1492,12 @@
           "NSMotionUsageDescription": "NOOP reads your iPhone's step count for a walking or running workout to show steps in the activity summary. It stays on your device. Nothing leaves it."
         }
       },
-      "version": "12.2.0",
-      "buildVersion": "442",
-      "versionDate": "2026-11-25",
-      "versionDescription": "• Hold a heart-rate zone during a workout, start and end it from Shortcuts\n• Show a wear streak with a flame on Today\n• Start and end workouts through noop://workout links\n• Drinks tab and a once-a-day wear-streak splash",
-      "downloadURL": "https://github.com/chrisitrisi/noop/releases/download/v12.2.0/NOOP-ios-unsigned-v12.2.0.ipa",
-      "size": 22082175,
+      "version": "12.2.1",
+      "buildVersion": "443",
+      "versionDate": "2026-11-27",
+      "versionDescription": "• Neue Kurzbefehl-Aktion „Wasser-Check“: Liegst du beim Trinken hinter dem Plan, vibriert die Whoop und du bekommst eine Mitteilung. Zählt auch Wasser aus Apple Health (z. B. aus wger).\n• Die Flamme der Trage-Serie steht im Stromsparmodus still und spart Akku.\n• SideStore zeigt bei Updates jetzt an, was neu ist.",
+      "downloadURL": "https://github.com/chrisitrisi/noop/releases/download/v12.2.1/NOOP-ios-unsigned-v12.2.1.ipa",
+      "size": 22090614,
       "minOSVersion": "17.0"
     }
   ],
